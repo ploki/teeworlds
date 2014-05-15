@@ -2,6 +2,9 @@
 /* If you are missing that file, acquire a complete release at teeworlds.com.                */
 #include "SDL.h"
 
+#include <iostream>
+#include <math.h>
+
 #include <base/system.h>
 #include <engine/shared/config.h>
 #include <engine/graphics.h>
@@ -16,6 +19,8 @@
 #define KEYS_INCLUDE
 #include "keynames.h"
 #undef KEYS_INCLUDE
+
+static short jx=0, jy=0;
 
 void CInput::AddEvent(int Unicode, int Key, int Flags)
 {
@@ -67,8 +72,12 @@ void CInput::MouseRelative(float *x, float *y)
 		}
 	}
 
-	*x = nx*Sens;
-	*y = ny*Sens;
+//#define TRANSFORM(z) (log(abs(z)+1)/LOG_32768 * 200. * Sens * z/abs(z))
+#define TRANSFORM(z) (double(z)/200.)
+#define LOG_32768 (10.39720770839917964125)
+	
+	*x = nx*Sens + ( jx!= 0 ? TRANSFORM(jx) : 0);
+	*y = ny*Sens + ( jy != 0 ? TRANSFORM(jy) : 0);
 }
 
 void CInput::MouseModeAbsolute()
@@ -111,8 +120,25 @@ int CInput::KeyState(int Key)
 
 int CInput::Update()
 {
+  static SDL_Joystick *joystick = NULL;
 	if(m_InputGrabbed && !Graphics()->WindowActive())
 		MouseModeAbsolute();
+	
+	if ( joystick == NULL )
+	  {
+	    if (SDL_NumJoysticks() == 0)
+	      {
+		std::cerr << "no joystick found" << std::endl;
+		abort();
+	      }
+	    SDL_JoystickEventState(SDL_ENABLE);
+	    joystick = SDL_JoystickOpen(0);
+	    if ( NULL == joystick )
+	      {
+		std::cerr << "Can't open joystick" << std::endl;
+		abort();
+	      }
+	  }
 
 	/*if(!input_grabbed && Graphics()->WindowActive())
 		Input()->MouseModeRelative();*/
@@ -190,6 +216,108 @@ int CInput::Update()
 					if(Event.button.button == 9) Key = KEY_MOUSE_9; // ignore_convention
 					break;
 
+			case SDL_JOYAXISMOTION:
+
+			  if ( /*Event.jaxis.axis == 0 || */ Event.jaxis.axis == 3 )
+			    {
+			      jx = Event.jaxis.value;
+			    }
+			  else if (/* Event.jaxis.axis == 1 || */Event.jaxis.axis == 2 ) 
+			    {
+			      jy = Event.jaxis.value;
+			    }
+			  
+			  break;
+
+			case SDL_JOYHATMOTION:
+
+			  switch(Event.jhat.value)
+			    {
+			    case SDL_HAT_LEFTUP:
+			      m_aInputState[m_InputCurrent][KEY_JS_RIGHT] = 1; AddEvent(0, KEY_JS_RIGHT, IInput::FLAG_RELEASE);
+			      m_aInputState[m_InputCurrent][KEY_JS_DOWN] = 1; AddEvent(0, KEY_JS_DOWN, IInput::FLAG_RELEASE);
+			      m_aInputCount[m_InputCurrent][KEY_JS_LEFT].m_Presses++; AddEvent(0, KEY_JS_LEFT, IInput::FLAG_PRESS);
+			      m_aInputCount[m_InputCurrent][KEY_JS_UP].m_Presses++; AddEvent(0, KEY_JS_UP, IInput::FLAG_PRESS);
+			      
+			      break;
+			    case SDL_HAT_LEFTDOWN:
+			      m_aInputState[m_InputCurrent][KEY_JS_RIGHT] = 1; AddEvent(0, KEY_JS_RIGHT, IInput::FLAG_RELEASE);
+			      m_aInputState[m_InputCurrent][KEY_JS_UP] = 1; AddEvent(0, KEY_JS_UP, IInput::FLAG_RELEASE);
+			      m_aInputCount[m_InputCurrent][KEY_JS_LEFT].m_Presses++; AddEvent(0, KEY_JS_LEFT, IInput::FLAG_PRESS);
+			      m_aInputCount[m_InputCurrent][KEY_JS_DOWN].m_Presses++; AddEvent(0, KEY_JS_DOWN, IInput::FLAG_PRESS);
+			      
+			      break;
+			    case SDL_HAT_RIGHTUP:
+			      m_aInputState[m_InputCurrent][KEY_JS_LEFT] = 1; AddEvent(0, KEY_JS_LEFT, IInput::FLAG_RELEASE);
+			      m_aInputState[m_InputCurrent][KEY_JS_DOWN] = 1; AddEvent(0, KEY_JS_DOWN, IInput::FLAG_RELEASE);
+			      m_aInputCount[m_InputCurrent][KEY_JS_RIGHT].m_Presses++; AddEvent(0, KEY_JS_RIGHT, IInput::FLAG_PRESS);
+			      m_aInputCount[m_InputCurrent][KEY_JS_UP].m_Presses++; AddEvent(0, KEY_JS_UP, IInput::FLAG_PRESS);
+			      
+			      break;
+			    case SDL_HAT_RIGHTDOWN:
+			      m_aInputState[m_InputCurrent][KEY_JS_LEFT] = 1; AddEvent(0, KEY_JS_LEFT, IInput::FLAG_RELEASE);
+			      m_aInputState[m_InputCurrent][KEY_JS_UP] = 1; AddEvent(0, KEY_JS_UP, IInput::FLAG_RELEASE);
+			      m_aInputCount[m_InputCurrent][KEY_JS_RIGHT].m_Presses++; AddEvent(0, KEY_JS_RIGHT, IInput::FLAG_PRESS);
+			      m_aInputCount[m_InputCurrent][KEY_JS_DOWN].m_Presses++; AddEvent(0, KEY_JS_DOWN, IInput::FLAG_PRESS);
+
+			      break;
+			    case SDL_HAT_UP:
+			      m_aInputState[m_InputCurrent][KEY_JS_LEFT] = 1; AddEvent(0, KEY_JS_LEFT, IInput::FLAG_RELEASE);
+			      m_aInputState[m_InputCurrent][KEY_JS_RIGHT] = 1; AddEvent(0, KEY_JS_RIGHT, IInput::FLAG_RELEASE);
+			      m_aInputState[m_InputCurrent][KEY_JS_DOWN] = 1; AddEvent(0, KEY_JS_DOWN, IInput::FLAG_RELEASE);
+			      m_aInputCount[m_InputCurrent][KEY_JS_UP].m_Presses++; AddEvent(0, KEY_JS_UP, IInput::FLAG_PRESS);
+			      
+			      break;
+			    case SDL_HAT_DOWN:
+			      m_aInputState[m_InputCurrent][KEY_JS_LEFT] = 1; AddEvent(0, KEY_JS_LEFT, IInput::FLAG_RELEASE);
+			      m_aInputState[m_InputCurrent][KEY_JS_RIGHT] = 1; AddEvent(0, KEY_JS_RIGHT, IInput::FLAG_RELEASE);
+			      m_aInputState[m_InputCurrent][KEY_JS_UP] = 1; AddEvent(0, KEY_JS_UP, IInput::FLAG_RELEASE);
+			      m_aInputCount[m_InputCurrent][KEY_JS_DOWN].m_Presses++; AddEvent(0, KEY_JS_DOWN, IInput::FLAG_PRESS);
+			      
+			      break;
+			    case SDL_HAT_LEFT:
+			      m_aInputState[m_InputCurrent][KEY_JS_DOWN] = 1; AddEvent(0, KEY_JS_DOWN, IInput::FLAG_RELEASE);
+			      m_aInputState[m_InputCurrent][KEY_JS_RIGHT] = 1; AddEvent(0, KEY_JS_RIGHT, IInput::FLAG_RELEASE);
+			      m_aInputState[m_InputCurrent][KEY_JS_UP] = 1; AddEvent(0, KEY_JS_UP, IInput::FLAG_RELEASE);
+			      m_aInputCount[m_InputCurrent][KEY_JS_LEFT].m_Presses++; AddEvent(0, KEY_JS_LEFT, IInput::FLAG_PRESS);
+			      
+			      break;
+			    case SDL_HAT_RIGHT:
+			      m_aInputState[m_InputCurrent][KEY_JS_DOWN] = 1; AddEvent(0, KEY_JS_DOWN, IInput::FLAG_RELEASE);
+			      m_aInputState[m_InputCurrent][KEY_JS_LEFT] = 1; AddEvent(0, KEY_JS_LEFT, IInput::FLAG_RELEASE);
+			      m_aInputState[m_InputCurrent][KEY_JS_UP] = 1; AddEvent(0, KEY_JS_UP, IInput::FLAG_RELEASE);
+			      m_aInputCount[m_InputCurrent][KEY_JS_RIGHT].m_Presses++; AddEvent(0, KEY_JS_RIGHT, IInput::FLAG_PRESS);
+			      
+			      break;
+			    default:
+			      m_aInputState[m_InputCurrent][KEY_JS_DOWN] = 1; AddEvent(0, KEY_JS_DOWN, IInput::FLAG_RELEASE);
+			      m_aInputState[m_InputCurrent][KEY_JS_LEFT] = 1; AddEvent(0, KEY_JS_LEFT, IInput::FLAG_RELEASE);
+			      m_aInputState[m_InputCurrent][KEY_JS_UP] = 1; AddEvent(0, KEY_JS_UP, IInput::FLAG_RELEASE);
+			      m_aInputState[m_InputCurrent][KEY_JS_RIGHT] = 1; AddEvent(0, KEY_JS_RIGHT, IInput::FLAG_RELEASE);
+
+			    }
+			 
+			  break;
+
+			case SDL_JOYBUTTONUP:
+
+			  Action = IInput::FLAG_RELEASE;
+
+			  // fall through
+			case SDL_JOYBUTTONDOWN:
+
+			  if (Event.jbutton.button == 0 ) Key = KEY_JS_0;
+			  if (Event.jbutton.button == 1 ) Key = KEY_JS_1;
+			  if (Event.jbutton.button == 2 ) Key = KEY_JS_2;
+			  if (Event.jbutton.button == 3 ) Key = KEY_JS_3;
+			  if (Event.jbutton.button == 4 ) Key = KEY_JS_4;
+			  if (Event.jbutton.button == 5 ) Key = KEY_JS_5;
+			  if (Event.jbutton.button == 6 ) Key = KEY_JS_6;
+			  if (Event.jbutton.button == 7 ) Key = KEY_JS_7;
+			  if (Event.jbutton.button == 8 ) Key = KEY_JS_8;
+			  if (Event.jbutton.button == 9 ) Key = KEY_JS_9;
+			  
+			  break;
 				// other messages
 				case SDL_QUIT:
 					return 1;
