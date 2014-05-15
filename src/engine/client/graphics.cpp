@@ -857,7 +857,7 @@ CGraphics_SDL::CGraphics_SDL()
 int CGraphics_SDL::Init()
 {
 	{
-		int Systems = SDL_INIT_VIDEO;
+		int Systems = SDL_INIT_VIDEO | SDL_INIT_JOYSTICK;
 
 		if(g_Config.m_SndEnable)
 			Systems |= SDL_INIT_AUDIO;

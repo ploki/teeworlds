@@ -390,9 +390,9 @@ void CCommandProcessor_SDL_OpenGL::RunBuffer(CCommandBuffer *pBuffer)
 
 int CGraphicsBackend_SDL_OpenGL::Init(const char *pName, int Width, int Height, int FsaaSamples, int Flags)
 {
-	if(!SDL_WasInit(SDL_INIT_VIDEO))
+	if(!SDL_WasInit(SDL_INIT_VIDEO|SDL_INIT_JOYSTICK))
 	{
-		if(SDL_InitSubSystem(SDL_INIT_VIDEO) < 0)
+		if(SDL_InitSubSystem(SDL_INIT_VIDEO|SDL_INIT_JOYSTICK) < 0)
 		{
 			dbg_msg("gfx", "unable to init SDL video: %s", SDL_GetError());
 			return -1;
