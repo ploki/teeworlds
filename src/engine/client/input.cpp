@@ -218,11 +218,11 @@ int CInput::Update()
 
 			case SDL_JOYAXISMOTION:
 
-			  if ( /*Event.jaxis.axis == 0 || */ Event.jaxis.axis == 3 )
+			  if ( /*Event.jaxis.axis == 0 || */ Event.jaxis.axis == 2 )
 			    {
 			      jx = Event.jaxis.value;
 			    }
-			  else if (/* Event.jaxis.axis == 1 || */Event.jaxis.axis == 2 ) 
+			  else if (/* Event.jaxis.axis == 1 || */Event.jaxis.axis == 3 ) 
 			    {
 			      jy = Event.jaxis.value;
 			    }
